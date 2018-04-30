@@ -11,6 +11,8 @@ pub enum Symbol {
     RightBracket,
     LeftParen,
     RightParen,
+    LeftBrace,
+    RightBrace,
     Comma,
     Point,
     Semicolon,
