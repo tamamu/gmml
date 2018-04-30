@@ -5,11 +5,45 @@ use std::path::Path;
 
 static EXAMPLE_PATH: &'static str = "example";
 
+#[derive(PartialEq, Debug, Clone)]
+pub enum Symbol {
+    LeftBracket,
+    RightBracket,
+    LeftParen,
+    RightParen,
+    Comma,
+    Point,
+    Semicolon,
+    Colon,
+    Arrow,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum TokenKind {
+    Identifier(String),
+    Number(String),
+    String(String),
+    Symbol(Symbol),
+    Newline
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Token {}
+
+#[derive(Clone)]
+pub struct Lexer {
+    filename: String,
+}
+
 fn open(path: &str) -> io::Result<String> {
     let mut f = File::open(path)?;
     let mut contents = String::new();
     f.read_to_string(&mut contents)?;
     Ok(contents)
+}
+
+fn parse(src: String) -> Result<Vec<Token>, String> {
+    unimplemented!()
 }
 
 fn test_by_examples() -> io::Result<()> { // = Result<(), io::Error>
