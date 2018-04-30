@@ -1,0 +1,6 @@
+[package]
+name = "modelml"
+version = "0.1.0"
+authors = ["tamamu <tamamu.1r1s@gmail.com>"]
+
+[dependencies]
