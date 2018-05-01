@@ -230,7 +230,9 @@ fn open(path: &str) -> io::Result<String> {
     Ok(contents)
 }
 
-fn parse(src: String) -> Result<Vec<Token>, String> {
+pub struct AST {}
+
+fn parse(toks: Vec<Token>) -> Result<Vec<AST>, String> {
     unimplemented!()
 }
 
