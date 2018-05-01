@@ -17,7 +17,10 @@ pub enum Symbol {
     Point,
     Semicolon,
     Colon,
-    Arrow,
+    Minus,
+    Lt,
+    Bt,
+    Equal,
 }
 
 #[derive(PartialEq, Debug, Clone)]
