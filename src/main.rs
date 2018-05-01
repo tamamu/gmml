@@ -24,20 +24,203 @@ pub enum Symbol {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum TokenKind {
+pub enum Token {
     Identifier(String),
-    Number(String),
+    Number(f32),
     String(String),
     Symbol(Symbol),
-    Newline
+    Arrow,
+    Newline,
+    Whitespace
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct Token {}
-
 #[derive(Clone)]
-pub struct Lexer {
+pub struct Scanner {
     filename: String,
+    buf: Vec<char>,
+    pos: usize,
+    sym: Vec<String>,
+}
+
+impl Scanner {
+    fn new(filename: String) -> Self {
+        let buf = open(&filename).expect("error when reading the file");
+        Self {
+            filename: filename,
+            buf: buf.chars().collect(),
+            pos: 0,
+            sym: Vec::new()
+        }
+    }
+    fn lex_string(&mut self) -> Option<(Token, usize)> {
+        let start = self.pos;
+        let mut end = self.pos;
+        while let Some(&c) = self.buf.get(end) {
+            if c != '"' {
+                break;
+            } else {
+                end += 1;
+            }
+        }
+        if self.pos >= self.buf.len() {
+            None
+        } else {
+            let range = start..end-1;
+            Some((Token::String(self.buf[range].iter().collect()), end-1-start))
+        }
+    }
+    fn lex_number(&mut self) -> Option<(Token, usize)> {
+        let start = self.pos;
+        let mut end = self.pos;
+        let mut point_count = 0;
+        while self.pos < self.buf.len() {
+            match self.buf.get(end) {
+                Some('.') => {
+                    if point_count > 1 {
+                        break;
+                    } else {
+                        point_count += 1;
+                    }
+                    end += 1;
+                }
+                Some(c) if c.is_numeric() => {
+                    end += 1;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+        if self.pos >= self.buf.len() {
+            None
+        } else {
+            let range = start..end;
+            let tmp: String = self.buf[range].iter().collect();
+            Some((Token::Number(tmp.parse::<f32>().unwrap()), end-start))
+        }
+    }
+    fn lex_identifier(&mut self) -> Option<(Token, usize)> {
+        let start = self.pos;
+        let mut end = self.pos;
+        while self.pos < self.buf.len() {
+            match self.buf.get(end) {
+                Some(c) if c.is_alphabetic() || c == &'_' => {
+                    end += 1;
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+        if self.pos >= self.buf.len() {
+            None
+        } else {
+            let range = start..end;
+            Some((Token::Identifier(self.buf[range].iter().collect()), end-start))
+        }
+    }
+}
+
+impl Iterator for Scanner {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Token> {
+        if self.pos >= self.buf.len() {
+            return None;
+        }
+        let c = self.buf.get(self.pos).unwrap().clone();
+        match c {
+            ' ' | '\t' => {
+                self.pos += 1;
+                while self.pos < self.buf.len() {
+                    let d = self.buf.get(self.pos).unwrap();
+                    if d == &' ' || d == &'\t' {
+                        self.pos += 1;
+                    } else {
+                        break;
+                    }
+                }
+                Some(Token::Whitespace)
+            }
+            '"' => {
+                let (tok, len) = self.lex_string().expect("parsing error: string start");
+                self.pos += len;
+                Some(tok)
+            }
+            ':' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::Colon))
+            }
+            ';' => {
+                while self.pos < self.buf.len() && self.buf.get(self.pos).unwrap() != &'\n' {
+                    self.pos += 1;
+                }
+                Some(Token::Newline)
+            }
+            ',' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::Comma))
+            }
+            '.' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::Point))
+            }
+            '(' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::LeftParen))
+            }
+            ')' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::RightParen))
+            }
+            '[' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::LeftBracket))
+            }
+            ']' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::RightBracket))
+            }
+            '{' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::LeftBrace))
+            }
+            '}' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::RightBrace))
+            }
+            '-' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::Minus))
+            }
+            '>' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::Lt))
+            }
+            '=' => {
+                self.pos += 1;
+                Some(Token::Symbol(Symbol::Equal))
+            }
+            '\n' => {
+                self.pos += 1;
+                Some(Token::Newline)
+            }
+            c if c.is_alphabetic() => {
+                let (tok, len) = self.lex_identifier().expect("parsing error: identifier");
+                self.pos += len;
+                Some(tok)
+            }
+            c if c.is_numeric() => {
+                let (tok, len) = self.lex_number().expect("parsing error: number");
+                self.pos += len;
+                Some(tok)
+            }
+            c => {
+                println!("unmatch: {}", c);
+                None
+            }
+        }
+    }
 }
 
 fn open(path: &str) -> io::Result<String> {
@@ -61,8 +244,16 @@ fn test_by_examples() -> io::Result<()> { // = Result<(), io::Error>
                 println!("error when getting the file name");
             },
             |path_str| {
-                let content = open(path_str).expect("error when reading the file");
-                println!("{}", content);
+                //let content = open(path_str).expect("error when reading the file");
+                //println!("{}", content);
+                let scanner = Scanner::new(path_str.to_string());
+                let sym: Vec<Token> = scanner.into_iter().collect();
+                println!("{:?}", sym);
+                /*
+                for tok in scanner {
+                    println!("{:?}", tok);
+                }
+                */
             });
         }
     }
@@ -70,5 +261,5 @@ fn test_by_examples() -> io::Result<()> { // = Result<(), io::Error>
 }
 
 fn main() {
-    test_by_examples();
+    test_by_examples().unwrap();
 }
