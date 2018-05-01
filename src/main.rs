@@ -230,9 +230,17 @@ fn open(path: &str) -> io::Result<String> {
     Ok(contents)
 }
 
-pub struct AST {}
+pub enum AST<'a> {
+    Block { name: String, content: Vec<&'a AST<'a>> },
+    Exist { name: String },
+    Leaf { name: String },
+    LeafDef { target: &'a AST<'a>, stmt: &'a AST<'a> },
+    Edge { from: String, to: String },
+    EdgeDef { target: &'a AST<'a>, stmt: &'a AST<'a> },
+    Struct { content: Vec<&'a AST<'a>> }
+}
 
-fn parse(toks: Vec<Token>) -> Result<Vec<AST>, String> {
+fn parse<'a>(toks: Vec<Token>) -> Result<Vec<AST<'a>>, String> {
     unimplemented!()
 }
 
