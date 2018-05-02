@@ -252,11 +252,31 @@ impl Parser {
             toks: toks
         }
     }
-    fn parse_block(&mut self) -> Result<(), String> {
-        let head = self.toks[self.cur];
+    fn parse_block<'a>(&mut self) -> Result<AST<'a>, String> {
+        let head = self.toks[self.cur].clone();
+        let name = match head {
+            Token::Identifier(name) => Some(name),
+            _ => None
+        };
+        let name = name.expect("parsing error: expect identifier");
+        self.cur += 1;
+        let second = self.toks[self.cur].clone();
+        match second {
+            Token::Symbol(Symbol::RightBrace) => {
+                let content = try!(self.parse_content());
+                let block = AST::Block { name: name, content: content };
+                Ok(block)
+            },
+            _ => {
+                panic!("parsing error: expect ]");
+            }
+        }
+    }
+    fn parse_content<'a>(&mut self) -> Result<Vec<&'a AST<'a>>, String> {
+        unimplemented!();
     }
 
-    fn parse<'a>(toks: Vec<Token>) -> Result<(), String> {
+    fn parse<'a>(toks: Vec<Token>) -> Result<Vec<&'a AST<'a>>, String> {
         unimplemented!()
     }
 }
