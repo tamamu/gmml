@@ -253,16 +253,38 @@ impl Parser {
         }
     }
     fn parse_block<'a>(&mut self) -> Result<AST<'a>, String> {
-        let head = self.toks[self.cur].clone();
-        let name = match head {
+        for i in self.cur..self.toks.len() {
+            match self.toks[i] {
+                Token::Newline => {
+                },
+                Token::Whitespace => {
+                },
+                _ => {
+                    self.cur = i;
+                    break;
+                }
+            }
+        }
+        let first = self.toks[self.cur].clone();
+        println!("{:?}", first);
+        match first {
+            Token::Symbol(Symbol::LeftBracket) => {
+                self.cur += 1;
+            },
+            _ => {
+                panic!("parsing error: expect [");
+            }
+        }
+        let second = self.toks[self.cur].clone();
+        let name = match second {
             Token::Identifier(name) => Some(name),
             _ => None
         };
         let name = name.expect("parsing error: expect identifier");
         self.cur += 1;
-        let second = self.toks[self.cur].clone();
-        match second {
-            Token::Symbol(Symbol::RightBrace) => {
+        let third = self.toks[self.cur].clone();
+        match third {
+            Token::Symbol(Symbol::RightBracket) => {
                 let content = try!(self.parse_content());
                 let block = AST::Block { name: name, content: content };
                 Ok(block)
@@ -296,6 +318,8 @@ fn test_by_examples() -> io::Result<()> { // = Result<(), io::Error>
                 let scanner = Scanner::new(path_str.to_string());
                 let sym: Vec<Token> = scanner.into_iter().collect();
                 println!("{:?}", sym);
+                let mut parser = Parser::new(sym);
+                parser.parse_block();
                 /*
                 for tok in scanner {
                     println!("{:?}", tok);
