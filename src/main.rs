@@ -240,8 +240,25 @@ pub enum AST<'a> {
     Struct { content: Vec<&'a AST<'a>> }
 }
 
-fn parse<'a>(toks: Vec<Token>) -> Result<Vec<AST<'a>>, String> {
-    unimplemented!()
+pub struct Parser {
+    cur: usize,
+    toks: Vec<Token>
+}
+
+impl Parser {
+    fn new(toks: Vec<Token>) -> Self {
+        Self {
+            cur: 0,
+            toks: toks
+        }
+    }
+    fn parse_block(&mut self) -> Result<(), String> {
+        let head = self.toks[self.cur];
+    }
+
+    fn parse<'a>(toks: Vec<Token>) -> Result<(), String> {
+        unimplemented!()
+    }
 }
 
 fn test_by_examples() -> io::Result<()> { // = Result<(), io::Error>
