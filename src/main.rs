@@ -258,7 +258,7 @@ impl Parser {
             toks: toks
         }
     }
-    fn parse_block<'a>(&mut self) -> Result<AST<'a>, String> {
+    fn skip_blank<'a>(&mut self) {
         for i in self.cur..self.toks.len() {
             match self.toks[i] {
                 Token::Newline => {
@@ -271,6 +271,9 @@ impl Parser {
                 }
             }
         }
+    }
+    fn parse_block<'a>(&mut self) -> Result<AST<'a>, String> {
+        self.skip_blank();
         let first = self.toks[self.cur].clone();
         println!("{:?}", first);
         match first {
