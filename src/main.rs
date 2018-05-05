@@ -305,10 +305,43 @@ impl Parser {
         }
     }
     fn parse_content<'a>(&mut self) -> Result<Vec<&'a AST<'a>>, String> {
+        let target = try!(self.parse_target());
+        println!("{:?}", target);
         unimplemented!();
     }
+    fn parse_target<'a>(&mut self) -> Result<AST<'a>, String> {
+        self.skip_blank(); 
+        let first = self.toks[self.cur].clone();
+        println!("{:?}", first);
+        let mut leaf_name = String::new();
+        self.cur += 1;
+        match first {
+            Token::Identifier(name) => { leaf_name = name },
+            _ => panic!("parsing error: expect identifier")
+        }
+        let cur = self.cur;
+        self.skip_blank();
+        let second = self.toks[self.cur].clone();
+        self.cur += 1;
+        match second {
+            Token::Arrow => {
+                self.skip_blank();
+                let third = self.toks[self.cur].clone();
+                self.cur += 1;
+                match third {
+                    Token::Identifier(name) => {
+                        Ok(AST::Edge { from: leaf_name, to: name })
+                    }
+                    _ => panic!("parsing error: expect identifier")
+                }
+            },
+            _ => {
+                Ok(AST::Leaf { name: leaf_name })
+            }
+        }
+    }
 
-    fn parse<'a>(toks: Vec<Token>) -> Result<Vec<&'a AST<'a>>, String> {
+    fn parse<'a>(&mut self) -> Result<Vec<&'a AST<'a>>, String> {
         unimplemented!()
     }
 }
