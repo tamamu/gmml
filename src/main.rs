@@ -285,13 +285,14 @@ impl Parser {
             }
         }
         let second = self.toks[self.cur].clone();
+        self.cur += 1;
         let name = match second {
             Token::Identifier(name) => Some(name),
             _ => None
         };
         let name = name.expect("parsing error: expect identifier");
-        self.cur += 1;
         let third = self.toks[self.cur].clone();
+        self.cur += 1;
         match third {
             Token::Symbol(Symbol::RightBracket) => {
                 let content = try!(self.parse_content());
