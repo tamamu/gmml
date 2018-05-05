@@ -191,7 +191,12 @@ impl Iterator for Scanner {
             }
             '-' => {
                 self.pos += 1;
-                Some(Token::Symbol(Symbol::Minus))
+                if self.pos < self.buf.len() && self.buf[self.pos] == '>' {
+                    self.pos += 1;
+                    Some(Token::Arrow)
+                } else {
+                    Some(Token::Symbol(Symbol::Minus))
+                }
             }
             '>' => {
                 self.pos += 1;
