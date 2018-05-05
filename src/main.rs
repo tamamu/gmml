@@ -235,6 +235,7 @@ fn open(path: &str) -> io::Result<String> {
     Ok(contents)
 }
 
+#[derive(Debug)]
 pub enum AST<'a> {
     Block { name: String, content: Vec<&'a AST<'a>> },
     Exist { name: String },
