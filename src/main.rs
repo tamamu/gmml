@@ -285,10 +285,9 @@ impl Parser {
             }
         }
     }
-    fn parse_block<'a>(&mut self) -> Result<AST<'a>, String> {
+    fn parse_block(&mut self) -> Result<AST, String> {
         self.skip_blank();
         let first = self.toks[self.cur].clone();
-        println!("{:?}", first);
         match first {
             Token::Symbol(Symbol::LeftBracket) => {
                 self.cur += 1;
