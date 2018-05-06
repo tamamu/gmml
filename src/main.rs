@@ -155,7 +155,7 @@ impl Iterator for Scanner {
                 while self.pos < self.buf.len() && self.buf.get(self.pos).unwrap() != &'\n' {
                     self.pos += 1;
                 }
-                Some(Token::Newline)
+                Some(Token::Whitespace)
             }
             ',' => {
                 self.pos += 1;
