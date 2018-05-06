@@ -261,11 +261,21 @@ impl Parser {
             toks: toks
         }
     }
-    fn skip_blank<'a>(&mut self) {
+    fn skip_blank(&mut self) {
+      for i in self.cur..self.toks.len() {
+        match self.toks[i] {
+          Token::Newline => {},
+          Token::Whitespace => {},
+          _ => {
+            self.cur = i;
+            break;
+          }
+        }
+      }
+    }
+    fn skip_whitespace(&mut self) {
         for i in self.cur..self.toks.len() {
             match self.toks[i] {
-                Token::Newline => {
-                },
                 Token::Whitespace => {
                 },
                 _ => {
