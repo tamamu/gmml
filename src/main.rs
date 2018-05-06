@@ -235,15 +235,18 @@ fn open(path: &str) -> io::Result<String> {
     Ok(contents)
 }
 
-#[derive(Debug)]
-pub enum AST<'a> {
-    Block { name: String, content: Vec<&'a AST<'a>> },
+#[derive(Debug, Clone)]
+pub enum AST {
+    Block { name: String, content: Vec<AST> },
     Exist { name: String },
     Leaf { name: String },
-    LeafDef { target: &'a AST<'a>, stmt: &'a AST<'a> },
+    LeafDef { target: Box<AST>, stmt: Box<AST> },
     Edge { from: String, to: String },
-    EdgeDef { target: &'a AST<'a>, stmt: &'a AST<'a> },
-    Struct { content: Vec<&'a AST<'a>> }
+    EdgeDef { target: Box<AST>, stmt: Box<AST> },
+    Struct(Vec<AST>),
+    Message { name: String, args: Vec<AST> },
+    String(String),
+    Number(f64)
 }
 
 pub struct Parser {
