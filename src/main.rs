@@ -96,7 +96,7 @@ impl Scanner {
         } else {
             let range = start..end;
             let tmp: String = self.buf[range].iter().collect();
-            Some((Token::Number(tmp.parse::<f32>().unwrap()), end-start))
+            Some((Token::Number(tmp.parse::<f64>().unwrap()), end-start))
         }
     }
     fn lex_identifier(&mut self) -> Option<(Token, usize)> {
