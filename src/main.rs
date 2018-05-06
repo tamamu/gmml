@@ -324,10 +324,72 @@ impl Parser {
             }
         }
     }
-    fn parse_content<'a>(&mut self) -> Result<Vec<&'a AST<'a>>, String> {
-        let target = try!(self.parse_target());
-        println!("{:?}", target);
-        unimplemented!();
+    fn parse_content(&mut self) -> Result<Vec<AST>, String> {
+        let mut content: Vec<AST> = Vec::new();
+        while self.cur < self.toks.len() {
+          let head = self.toks[self.cur].clone();
+          match head {
+            Token::Symbol(Symbol::LeftBracket) => {
+              break;
+            },
+            Token::Newline => {
+              self.cur += 1;
+              break;
+            }
+            Token::Identifier(_) => {
+              let first = try!(self.parse_target());
+              self.skip_whitespace();
+              let second = self.toks[self.cur].clone();
+              self.cur += 1;
+              match second {
+                Token::Newline => {
+                  content.push(first);
+                },
+                Token::Symbol(Symbol::Colon) => {
+                  match &first {
+                    AST::Edge{from:_,to:_} => {
+                      let third = try!(self.parse_definition());
+                      self.skip_whitespace();
+                      let fourth = self.toks[self.cur].clone();
+                      self.cur += 1;
+                      match fourth {
+                        Token::Newline => {
+                          let target = first.clone();
+                          let stmt = third.clone();
+                          content.push(AST::EdgeDef {target: Box::new(target), stmt: Box::new(stmt)});
+                        },
+                        _ => panic!("parsing error: expect newline")
+                      }
+                    },
+                    _ => panic!("parsing error: edge : stmt ?")
+                  }
+                },
+                Token::Symbol(Symbol::Equal) => {
+                  match &first {
+                    AST::Leaf{name:_} => {
+                      let third = try!(self.parse_definition());
+                      self.skip_whitespace();
+                      let fourth = self.toks[self.cur].clone();
+                      self.cur += 1;
+                      match fourth {
+                        Token::Newline => {
+                          let target = first.clone();
+                          let stmt = third.clone();
+                          content.push(AST::LeafDef {target: Box::new(target), stmt: Box::new(stmt)});
+                        },
+                        _ => panic!("parsing error: expect newline")
+                      }
+                    },
+                    _ => panic!("parsing error: leaf = stmt ?")
+                  }
+                },
+                _ => panic!("parsing error: expect : or newline")
+            }
+          }
+          _ => panic!("parsing error: expect newline or identifier")
+        }
+      }
+       Ok(content)
     }
     fn parse_target<'a>(&mut self) -> Result<AST<'a>, String> {
         self.skip_blank(); 
