@@ -391,11 +391,9 @@ impl Parser {
       }
        Ok(content)
     }
-    fn parse_target<'a>(&mut self) -> Result<AST<'a>, String> {
-        self.skip_blank(); 
+    fn parse_target(&mut self) -> Result<AST, String> {
         let first = self.toks[self.cur].clone();
-        println!("{:?}", first);
-        let mut leaf_name = String::new();
+        let leaf_name: String;
         self.cur += 1;
         match first {
             Token::Identifier(name) => { leaf_name = name },
@@ -418,6 +416,7 @@ impl Parser {
                 }
             },
             _ => {
+                self.cur = cur;
                 Ok(AST::Leaf { name: leaf_name })
             }
         }
