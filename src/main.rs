@@ -307,9 +307,17 @@ impl Parser {
         self.cur += 1;
         match third {
             Token::Symbol(Symbol::RightBracket) => {
-                let content = try!(self.parse_content());
-                let block = AST::Block { name: name, content: content };
-                Ok(block)
+                self.skip_whitespace();
+                let fourth = self.toks[self.cur].clone();
+                self.cur += 1;
+                match fourth {
+                  Token::Newline => {
+                    let content = try!(self.parse_content());
+                    let block = AST::Block { name: name, content: content };
+                    Ok(block)
+                  },
+                  _ => panic!("parsing error: expect newline")
+                }
             },
             _ => {
                 panic!("parsing error: expect ]");
