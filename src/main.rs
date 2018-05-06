@@ -421,9 +421,162 @@ impl Parser {
             }
         }
     }
+    fn parse_definition(&mut self) -> Result<AST, String> {
+      self.skip_whitespace();
+      let first = self.toks[self.cur].clone();
+      match first {
+        Token::Symbol(Symbol::LeftBrace) => Ok(try!(self.parse_struct())),
+        Token::Identifier(_) => Ok(try!(self.parse_message())),
+        _ => panic!("parsing error: expect { or identifier")
+      }
+    }
 
-    fn parse<'a>(&mut self) -> Result<Vec<&'a AST<'a>>, String> {
-        unimplemented!()
+    fn parse_value(&mut self) -> Result<AST, String> {
+      let first = self.toks[self.cur].clone();
+      match first {
+        Token::Symbol(Symbol::LeftBrace) => self.parse_struct(),
+        Token::String(string) => {
+          self.cur += 1;
+          Ok(AST::String(string))
+        },
+        Token::Number(number) => {
+          self.cur += 1;
+          Ok(AST::Number(number))
+        },
+        Token::Identifier(_) => self.parse_message(),
+        _ => panic!("parsing error: expect {, string, number, or identifier")
+      }
+    }
+
+    fn parse_pair(&mut self) -> Result<AST, String> {
+      let first = self.toks[self.cur].clone();
+      self.cur += 1;
+      let pair_left: Option<AST>;
+      match first {
+        Token::Identifier(name) => {
+          pair_left = Some(AST::Leaf { name: name });
+        },
+        _ => panic!("parsing error: expect identifier")
+      }
+      self.skip_blank();
+      let second = self.toks[self.cur].clone();
+      self.cur += 1;
+      match second {
+        Token::Symbol(Symbol::Colon) => {},
+        _ => panic!("parsing error: expect :")
+      }
+      self.skip_blank();
+      Ok(AST::LeafDef { target: Box::new(pair_left.unwrap()), stmt: Box::new(try!(self.parse_value()))})
+    }
+
+    fn parse_struct(&mut self) -> Result<AST, String> {
+      let first = self.toks[self.cur].clone();
+      self.cur += 1;
+      match first {
+        Token::Symbol(Symbol::LeftBrace) => {},
+        _ => panic!("parsing error: expect {")
+      }
+      let mut content: Vec<AST> = Vec::new();
+      self.skip_blank();
+      while self.cur < self.toks.len() {
+        let second = self.toks[self.cur].clone();
+        match second {
+          Token::Symbol(Symbol::RightBrace) => {
+            break;
+          },
+          _ => {}
+        }
+        let pair = try!(self.parse_pair());
+        content.push(pair);
+        self.skip_blank();
+        let comma = self.toks[self.cur].clone();
+        match comma {
+          Token::Symbol(Symbol::Comma) => {
+            self.cur += 1;
+            self.skip_blank();
+          },
+          _ => {
+            break;
+          }
+        }
+      }
+      let third = self.toks[self.cur].clone();
+      self.cur += 1;
+      match third {
+        Token::Symbol(Symbol::RightBrace) => {
+          Ok(AST::Struct(content) )
+        },
+        _ => panic!("parsing error: expect }")
+      }
+    }
+
+    fn parse_message(&mut self) -> Result<AST, String> {
+      let first = self.toks[self.cur].clone();
+      self.cur += 1;
+      let message_name: String;
+      match first {
+        Token::Identifier(name) => {
+          message_name = name;
+        },
+        _ => panic!("parsing error: expect identifier")
+      }
+      let second = self.toks[self.cur].clone();
+      match second {
+        Token::Symbol(Symbol::LeftParen) => Ok(AST::Message {name: message_name, args: try!(self.parse_args())}),
+        _ => {
+          Ok(AST::Leaf {name: message_name})
+        }
+      }
+    }
+
+    fn parse_args(&mut self) -> Result<Vec<AST>, String> {
+      let first = self.toks[self.cur].clone();
+      self.cur += 1;
+      match first {
+        Token::Symbol(Symbol::LeftParen) => {},
+        _ => panic!("parsing error: expect (")
+      }
+      let mut content: Vec<AST> = Vec::new();
+      self.skip_blank();
+      while self.cur < self.toks.len() {
+        let second = self.toks[self.cur].clone();
+        match second {
+          Token::Symbol(Symbol::RightParen) => {
+            break;
+          },
+          _ => {}
+        }
+        let value = try!(self.parse_value());
+        content.push(value);
+        self.skip_blank();
+        let comma = self.toks[self.cur].clone();
+        match comma {
+          Token::Symbol(Symbol::Comma) => {
+            self.cur += 1;
+            self.skip_blank();
+          },
+          _ => {
+            break;
+          }
+        }
+      }
+      let third = self.toks[self.cur].clone();
+      self.cur += 1;
+      match third {
+        Token::Symbol(Symbol::RightParen) => {
+          Ok(content)
+        },
+        _ => panic!("parsing error: expect )")
+      }
+    }
+
+    fn parse(&mut self) -> Result<Vec<AST>, String> {
+      let mut blocks: Vec<AST> = Vec::new();
+      while self.cur < self.toks.len() {
+        let block = try!(self.parse_block());
+        blocks.push(block);
+      }
+      Ok(blocks)
     }
 }
 
@@ -441,9 +594,9 @@ fn test_by_examples() -> io::Result<()> { // = Result<(), io::Error>
                 //println!("{}", content);
                 let scanner = Scanner::new(path_str.to_string());
                 let sym: Vec<Token> = scanner.into_iter().collect();
-                println!("{:?}", sym);
                 let mut parser = Parser::new(sym);
-                parser.parse_block();
+                let result = parser.parse().expect("failed to parse");
+                println!("{:?}", result);
                 /*
                 for tok in scanner {
                     println!("{:?}", tok);
