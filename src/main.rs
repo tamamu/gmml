@@ -26,7 +26,7 @@ pub enum Symbol {
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token {
     Identifier(String),
-    Number(f32),
+    Number(f64),
     String(String),
     Symbol(Symbol),
     Arrow,
