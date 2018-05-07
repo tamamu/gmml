@@ -13,6 +13,6 @@ X -> Y : Positive
 Y -> Z : Negative
 
 [Model]
-Y -> Z : Attack() ; parentheses can be omitted
-Z -> Y : Attack
-X -> Z : Attack
+Y -> Z : Attack() ; parentheses can not be omitted
+Z -> Y : Attack()
+X -> Z : Attack()
