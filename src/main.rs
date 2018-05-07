@@ -240,7 +240,6 @@ fn open(path: &str) -> io::Result<String> {
 #[derive(Debug, Clone)]
 pub enum AST {
     Block { name: String, content: Vec<AST> },
-    Exist { name: String },
     Leaf { name: String },
     LeafDef { target: Box<AST>, stmt: Box<AST> },
     Edge { from: String, to: String },
