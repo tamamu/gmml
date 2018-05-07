@@ -579,6 +579,56 @@ impl Parser {
       }
       Ok(blocks)
     }
+
+    fn parse(&mut self) -> Result<HashMap<String, GValue>, String> {
+        let root_ast = try!(self.get_ast());
+        let mut root: HashMap<String, GValue> = HashMap::new();
+        let blocks: Vec<GValue> = root_ast.into_iter().map(GValue::from).collect();
+        for block in blocks {
+            match block {
+                GValue::Pair(key, value) => {
+                    match *key {
+                        GValue::String(key_string) => {
+                            root.entry(key_string).or_insert(*value);
+                        },
+                        _ => panic!("convert error: key should be String")
+                    }
+                },
+                _ => panic!("convert error: invalid block syntax")
+            }
+        }
+        Ok(root)
+    }
+}
+
+#[derive(Debug)]
+pub enum GValue {
+    String(String),
+    Number(f64),
+    Symbol(String),
+    Message(String, Vec<GValue>),
+    Edge(String, String),
+    Map(HashMap<String, GValue>),
+    Vec(Vec<GValue>),
+    Pair(Box<GValue>, Box<GValue>)
+}
+
+impl From<AST> for GValue {
+    fn from(ast: AST) -> Self {
+        match ast {
+            AST::String(string) => GValue::String(string.to_string()),
+            AST::Number(number) => GValue::Number(number),
+            AST::Leaf{name} => GValue::Symbol(name.to_string()),
+            AST::LeafDef{target,stmt} => GValue::Pair(Box::new(GValue::from(*target)), Box::new(GValue::from(*stmt))),
+            AST::Edge{from,to} => GValue::Edge(from,to),
+            AST::EdgeDef{target,stmt} => GValue::Pair(Box::new(GValue::from(*target)), Box::new(GValue::from(*stmt))),
+            AST::Message{name,args} => GValue::Message(name, args.into_iter().map(GValue::from).collect()),
+            AST::Struct(content) => GValue::Vec(content.into_iter().map(GValue::from).collect()),
+            AST::Block{name, content} =>
+                GValue::Pair(Box::new(GValue::String(name.to_string())),
+                Box::new(GValue::Vec(content.into_iter().map(GValue::from).collect())))
+        }
+    }
 }
 
 fn test_by_examples() -> io::Result<()> { // = Result<(), io::Error>
