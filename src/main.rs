@@ -2,6 +2,8 @@ use std::io;
 use std::io::prelude::*;
 use std::fs::{self, File};
 use std::path::Path;
+use std::collections::HashMap;
+use std::convert::From;
 
 static EXAMPLE_PATH: &'static str = "example";
 
