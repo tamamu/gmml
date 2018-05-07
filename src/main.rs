@@ -571,7 +571,7 @@ impl Parser {
       }
     }
 
-    fn parse(&mut self) -> Result<Vec<AST>, String> {
+    fn get_ast(&mut self) -> Result<Vec<AST>, String> {
       let mut blocks: Vec<AST> = Vec::new();
       while self.cur < self.toks.len() {
         let block = try!(self.parse_block());
