@@ -1,0 +1,19 @@
+
+; Comment
+; Comment
+
+[A];Comment
+[B]
+[C]
+Hello = 123.456
+World =  "hello"
+[D]
+Fizz = { "mod": 3, output: "fizz" }
+Buzz = { "mod": 5,output:"buzz" }
+FizzBuzz = { "mod": 15 ,output:"fizzbuzz"}
+
+
+[E]
+W -> H : {4:3, 16:9}
+Foo -> Bar:Baz
+1->2:3
