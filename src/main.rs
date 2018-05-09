@@ -131,6 +131,7 @@ impl Iterator for Scanner {
             return None;
         }
         let c = self.buf.get(self.pos).unwrap().clone();
+        print!("{}", c);
         match c {
             ' ' | '\t' => {
                 self.pos += 1;
@@ -349,7 +350,8 @@ impl Parser {
                 Token::Symbol(Symbol::Colon) => {
                   match &first {
                     AST::Edge{from:_,to:_} => {
-                      let third = try!(self.parse_definition());
+                      self.skip_blank();
+                      let third = try!(self.parse_value());
                       self.skip_whitespace();
                       let fourth = self.toks[self.cur].clone();
                       self.cur += 1;
@@ -368,7 +370,8 @@ impl Parser {
                 Token::Symbol(Symbol::Equal) => {
                   match &first {
                     AST::Leaf{name:_} => {
-                      let third = try!(self.parse_definition());
+                      self.skip_blank();
+                      let third = try!(self.parse_value());
                       self.skip_whitespace();
                       let fourth = self.toks[self.cur].clone();
                       self.cur += 1;
