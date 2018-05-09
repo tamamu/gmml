@@ -55,20 +55,20 @@ impl Scanner {
         }
     }
     fn lex_string(&mut self) -> Option<(Token, usize)> {
-        let start = self.pos;
-        let mut end = self.pos;
+        let start = self.pos+1;
+        let mut end = self.pos+1;
         while let Some(&c) = self.buf.get(end) {
-            if c != '"' {
+            if c == '"' {
                 break;
             } else {
                 end += 1;
             }
         }
-        if self.pos >= self.buf.len() {
+        if end > self.buf.len() {
             None
         } else {
-            let range = start..end-1;
-            Some((Token::String(self.buf[range].iter().collect()), end-1-start))
+            let range = start..end;
+            Some((Token::String(self.buf[range].iter().collect()), end-start+2))
         }
     }
     fn lex_number(&mut self) -> Option<(Token, usize)> {
