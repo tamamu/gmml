@@ -93,7 +93,7 @@ impl Scanner {
                 }
             }
         }
-        if self.pos >= self.buf.len() {
+        if end >= self.buf.len() {
             None
         } else {
             let range = start..end;
@@ -114,7 +114,7 @@ impl Scanner {
                 }
             }
         }
-        if self.pos >= self.buf.len() {
+        if end >= self.buf.len() {
             None
         } else {
             let range = start..end;
