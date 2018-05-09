@@ -460,6 +460,12 @@ impl Parser {
         Token::Identifier(name) => {
           pair_left = Some(AST::Leaf { name: name });
         },
+        Token::Number(number) => {
+          pair_left = Some(AST::Number(number));
+        },
+        Token::String(string) => {
+          pair_left = Some(AST::String(string));
+        },
         _ => panic!("parsing error: expect identifier")
       }
       self.skip_blank();
