@@ -426,16 +426,6 @@ impl Parser {
         }
     }
 
-    fn parse_definition(&mut self) -> Result<AST, String> {
-      self.skip_whitespace();
-      let first = self.toks[self.cur].clone();
-      match first {
-        Token::Symbol(Symbol::LeftBrace) => Ok(try!(self.parse_struct())),
-        Token::Identifier(_) => Ok(try!(self.parse_message())),
-        _ => panic!("parsing error: expect { or identifier")
-      }
-    }
-
     fn parse_value(&mut self) -> Result<AST, String> {
       let first = self.toks[self.cur].clone();
       match first {
