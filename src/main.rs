@@ -106,7 +106,7 @@ impl Scanner {
         let mut end = self.pos;
         while self.pos < self.buf.len() {
             match self.buf.get(end) {
-                Some(c) if c.is_alphabetic() || c == &'_' => {
+                Some(c) if c.is_alphabetic() || c.is_numeric() || c == &'_' => {
                     end += 1;
                 }
                 _ => {
