@@ -247,7 +247,8 @@ pub enum AST {
     Message { name: String, args: Vec<AST> },
     String(String),
     Number(f64),
-    Symbol(String)
+    Symbol(String),
+    List(Vec<AST>)
 }
 
 pub struct Parser {
