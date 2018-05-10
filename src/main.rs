@@ -636,7 +636,6 @@ pub enum GValue {
     Symbol(String),
     Message(String, Vec<GValue>),
     Edge(Box<GValue>, Box<GValue>),
-    Map(HashMap<String, GValue>),
     Vec(Vec<GValue>),
     Pair(Box<GValue>, Box<GValue>)
 }
