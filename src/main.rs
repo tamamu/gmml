@@ -241,14 +241,14 @@ fn open(path: &str) -> io::Result<String> {
 #[derive(Debug, Clone)]
 pub enum AST {
     Block { name: String, content: Vec<AST> },
-    Leaf { name: String },
     LeafDef { target: Box<AST>, stmt: Box<AST> },
-    Edge { from: String, to: String },
+    Edge { from: Box<AST>, to: Box<AST> },
     EdgeDef { target: Box<AST>, stmt: Box<AST> },
     Struct(Vec<AST>),
     Message { name: String, args: Vec<AST> },
     String(String),
-    Number(f64)
+    Number(f64),
+    Symbol(String)
 }
 
 pub struct Parser {
