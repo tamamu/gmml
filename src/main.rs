@@ -338,7 +338,7 @@ impl Parser {
               self.cur += 1;
               break;
             }
-            Token::Identifier(_) => {
+            Token::Identifier(_) | Token::Number(_) | Token::String(_) => {
               let first = try!(self.parse_target());
               self.skip_whitespace();
               let second = self.toks[self.cur].clone();
