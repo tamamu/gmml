@@ -463,7 +463,7 @@ impl Parser {
         _ => panic!("parsing error: expect :")
       }
       self.skip_blank();
-      Ok(AST::LeafDef { target: Box::new(pair_left.unwrap()), stmt: Box::new(try!(self.parse_value()))})
+      Ok(AST::LeafDef { target: Box::new(pair_left), stmt: Box::new(try!(self.parse_value()))})
     }
 
     fn parse_struct(&mut self) -> Result<AST, String> {
@@ -521,7 +521,7 @@ impl Parser {
       match second {
         Token::Symbol(Symbol::LeftParen) => Ok(AST::Message {name: message_name, args: try!(self.parse_args())}),
         _ => {
-          Ok(AST::Leaf {name: message_name})
+          Ok(AST::Symbol(message_name))
         }
       }
     }
@@ -603,7 +603,7 @@ pub enum GValue {
     Number(f64),
     Symbol(String),
     Message(String, Vec<GValue>),
-    Edge(String, String),
+    Edge(Box<GValue>, Box<GValue>),
     Map(HashMap<String, GValue>),
     Vec(Vec<GValue>),
     Pair(Box<GValue>, Box<GValue>)
@@ -614,9 +614,9 @@ impl From<AST> for GValue {
         match ast {
             AST::String(string) => GValue::String(string.to_string()),
             AST::Number(number) => GValue::Number(number),
-            AST::Leaf{name} => GValue::Symbol(name.to_string()),
+            AST::Symbol(name) => GValue::Symbol(name.to_string()),
             AST::LeafDef{target,stmt} => GValue::Pair(Box::new(GValue::from(*target)), Box::new(GValue::from(*stmt))),
-            AST::Edge{from,to} => GValue::Edge(from,to),
+            AST::Edge{from,to} => GValue::Edge(Box::new(GValue::from(*from)), Box::new(GValue::from(*to))),
             AST::EdgeDef{target,stmt} => GValue::Pair(Box::new(GValue::from(*target)), Box::new(GValue::from(*stmt))),
             AST::Message{name,args} => GValue::Message(name, args.into_iter().map(GValue::from).collect()),
             AST::Struct(content) => GValue::Vec(content.into_iter().map(GValue::from).collect()),
