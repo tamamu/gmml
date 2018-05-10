@@ -369,7 +369,7 @@ impl Parser {
                 },
                 Token::Symbol(Symbol::Equal) => {
                   match &first {
-                    AST::Leaf{name:_} => {
+                    AST::Symbol(_) => {
                       self.skip_blank();
                       let third = try!(self.parse_value());
                       self.skip_whitespace();
