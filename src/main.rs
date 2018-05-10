@@ -671,11 +671,12 @@ fn test_by_examples() -> io::Result<()> { // = Result<(), io::Error>
             |path_str| {
                 //let content = open(path_str).expect("error when reading the file");
                 //println!("{}", content);
+                println!("{}:", path_str);
                 let scanner = Scanner::new(path_str.to_string());
                 let sym: Vec<Token> = scanner.into_iter().collect();
                 let mut parser = Parser::new(sym);
                 let result = parser.parse().expect("failed to parse");
-                println!("{:?}", result);
+                println!("{:?}\n", result);
                 /*
                 for tok in scanner {
                     println!("{:?}", tok);
