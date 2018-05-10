@@ -395,14 +395,20 @@ impl Parser {
       }
        Ok(content)
     }
-    fn parse_target(&mut self) -> Result<AST, String> {
+
+    fn parse_key(&mut self) -> Result<AST, String> {
         let first = self.toks[self.cur].clone();
-        let leaf_name: String;
         self.cur += 1;
         match first {
-            Token::Identifier(name) => { leaf_name = name },
-            _ => panic!("parsing error: expect identifier")
+            Token::Identifier(name) => Ok(AST::Symbol(name.to_string())),
+            Token::String(string) => Ok(AST::String(string.to_string())),
+            Token::Number(number) => Ok(AST::Number(number)),
+            _ => panic!("parsing error: expect identifier or string or number")
         }
+    }
+
+    fn parse_target(&mut self) -> Result<AST, String> {
+        let left = try!(self.parse_key());
         let cur = self.cur;
         self.skip_blank();
         let second = self.toks[self.cur].clone();
@@ -410,21 +416,16 @@ impl Parser {
         match second {
             Token::Arrow => {
                 self.skip_blank();
-                let third = self.toks[self.cur].clone();
-                self.cur += 1;
-                match third {
-                    Token::Identifier(name) => {
-                        Ok(AST::Edge { from: leaf_name, to: name })
-                    }
-                    _ => panic!("parsing error: expect identifier")
-                }
+                let right = try!(self.parse_key());
+                Ok(AST::Edge { from: Box::new(left), to: Box::new(right) })
             },
             _ => {
                 self.cur = cur;
-                Ok(AST::Leaf { name: leaf_name })
+                Ok(left)
             }
         }
     }
+
     fn parse_definition(&mut self) -> Result<AST, String> {
       self.skip_whitespace();
       let first = self.toks[self.cur].clone();
@@ -453,21 +454,7 @@ impl Parser {
     }
 
     fn parse_pair(&mut self) -> Result<AST, String> {
-      let first = self.toks[self.cur].clone();
-      self.cur += 1;
-      let pair_left: Option<AST>;
-      match first {
-        Token::Identifier(name) => {
-          pair_left = Some(AST::Leaf { name: name });
-        },
-        Token::Number(number) => {
-          pair_left = Some(AST::Number(number));
-        },
-        Token::String(string) => {
-          pair_left = Some(AST::String(string));
-        },
-        _ => panic!("parsing error: expect identifier")
-      }
+      let pair_left = try!(self.parse_key());
       self.skip_blank();
       let second = self.toks[self.cur].clone();
       self.cur += 1;
