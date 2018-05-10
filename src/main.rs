@@ -131,7 +131,6 @@ impl Iterator for Scanner {
             return None;
         }
         let c = self.buf.get(self.pos).unwrap().clone();
-        print!("{}", c);
         match c {
             ' ' | '\t' => {
                 self.pos += 1;
