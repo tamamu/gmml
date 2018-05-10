@@ -17,3 +17,4 @@ FizzBuzz = { "mod": 15 ,output:"fizzbuzz"}
 W -> H : {4:3, 16:9}
 Foo -> Bar:Baz
 1->2:3
+"Gmml" = ("Graph", "Model", "Markup", "Language")
