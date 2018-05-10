@@ -430,6 +430,7 @@ impl Parser {
       let first = self.toks[self.cur].clone();
       match first {
         Token::Symbol(Symbol::LeftBrace) => self.parse_struct(),
+        Token::Symbol(Symbol::LeftParen) => self.parse_list(),
         Token::String(string) => {
           self.cur += 1;
           Ok(AST::String(string))
@@ -456,6 +457,47 @@ impl Parser {
       Ok(AST::LeafDef { target: Box::new(pair_left), stmt: Box::new(try!(self.parse_value()))})
     }
 
+    fn parse_list(&mut self) -> Result<AST, String> {
+        let first = self.toks[self.cur].clone();
+        self.cur += 1;
+        match first {
+            Token::Symbol(Symbol::LeftParen) => {},
+            _ => panic!("parsing error: expect (")
+        }
+        let mut content: Vec<AST> = Vec::new();
+        self.skip_blank();
+        while self.cur < self.toks.len() {
+            let second = self.toks[self.cur].clone();
+            match second {
+                Token::Symbol(Symbol::RightParen) => {
+                    return Ok(AST::List(content));
+                },
+                _ => {}
+            }
+            let value = try!(self.parse_value());
+            content.push(value);
+            self.skip_blank();
+            let comma = self.toks[self.cur].clone();
+            match comma {
+                Token::Symbol(Symbol::Comma) => {
+                    self.cur += 1;
+                    self.skip_blank();
+                },
+                _ => {
+                    break;
+                }
+            }
+        }
+        let third = self.toks[self.cur].clone();
+        self.cur += 1;
+        match third {
+            Token::Symbol(Symbol::RightParen) => {
+                Ok(AST::List(content))
+            },
+            _ => panic!("parsing error: expect )")
+        }
+    }
+
     fn parse_struct(&mut self) -> Result<AST, String> {
       let first = self.toks[self.cur].clone();
       self.cur += 1;
@@ -469,7 +511,7 @@ impl Parser {
         let second = self.toks[self.cur].clone();
         match second {
           Token::Symbol(Symbol::RightBrace) => {
-            break;
+            return Ok(AST::List(content));
           },
           _ => {}
         }
@@ -610,6 +652,7 @@ impl From<AST> for GValue {
             AST::EdgeDef{target,stmt} => GValue::Pair(Box::new(GValue::from(*target)), Box::new(GValue::from(*stmt))),
             AST::Message{name,args} => GValue::Message(name, args.into_iter().map(GValue::from).collect()),
             AST::Struct(content) => GValue::Vec(content.into_iter().map(GValue::from).collect()),
+            AST::List(content) => GValue::Vec(content.into_iter().map(GValue::from).collect()),
             AST::Block{name, content} =>
                 GValue::Pair(Box::new(GValue::String(name.to_string())),
                 Box::new(GValue::Vec(content.into_iter().map(GValue::from).collect())))
