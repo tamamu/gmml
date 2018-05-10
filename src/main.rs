@@ -369,7 +369,7 @@ impl Parser {
                 },
                 Token::Symbol(Symbol::Equal) => {
                   match &first {
-                    AST::Symbol(_) => {
+                    AST::Symbol(_) | AST::String(_) | AST::Number(_) => {
                       self.skip_blank();
                       let third = try!(self.parse_value());
                       self.skip_whitespace();
