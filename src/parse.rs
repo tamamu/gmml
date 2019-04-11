@@ -1,8 +1,8 @@
-use std::io;
-use std::io::prelude::*;
-use std::fs::File;
 use std::collections::HashMap;
 use std::convert::From;
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Symbol {
@@ -30,7 +30,7 @@ pub enum Token {
     Symbol(Symbol),
     Arrow,
     Newline,
-    Whitespace
+    Whitespace,
 }
 
 #[derive(Clone)]
@@ -48,12 +48,12 @@ impl Scanner {
             filename: filename,
             buf: buf.chars().collect(),
             pos: 0,
-            sym: Vec::new()
+            sym: Vec::new(),
         }
     }
     fn lex_string(&mut self) -> Option<(Token, usize)> {
-        let start = self.pos+1;
-        let mut end = self.pos+1;
+        let start = self.pos + 1;
+        let mut end = self.pos + 1;
         while let Some(&c) = self.buf.get(end) {
             if c == '"' {
                 break;
@@ -65,7 +65,10 @@ impl Scanner {
             None
         } else {
             let range = start..end;
-            Some((Token::String(self.buf[range].iter().collect()), end-start+2))
+            Some((
+                Token::String(self.buf[range].iter().collect()),
+                end - start + 2,
+            ))
         }
     }
     fn lex_number(&mut self) -> Option<(Token, usize)> {
@@ -95,7 +98,7 @@ impl Scanner {
         } else {
             let range = start..end;
             let tmp: String = self.buf[range].iter().collect();
-            Some((Token::Number(tmp.parse::<f64>().unwrap()), end-start))
+            Some((Token::Number(tmp.parse::<f64>().unwrap()), end - start))
         }
     }
     fn lex_identifier(&mut self) -> Option<(Token, usize)> {
@@ -115,7 +118,10 @@ impl Scanner {
             None
         } else {
             let range = start..end;
-            Some((Token::Identifier(self.buf[range].iter().collect()), end-start))
+            Some((
+                Token::Identifier(self.buf[range].iter().collect()),
+                end - start,
+            ))
         }
     }
 }
@@ -245,38 +251,34 @@ pub enum AST {
     String(String),
     Number(f64),
     Symbol(String),
-    List(Vec<AST>)
+    List(Vec<AST>),
 }
 
 pub struct Parser {
     cur: usize,
-    toks: Vec<Token>
+    toks: Vec<Token>,
 }
 
 impl Parser {
     pub fn new(toks: Vec<Token>) -> Self {
-        Self {
-            cur: 0,
-            toks: toks
-        }
+        Self { cur: 0, toks: toks }
     }
     fn skip_blank(&mut self) {
-      for i in self.cur..self.toks.len() {
-        match self.toks[i] {
-          Token::Newline => {},
-          Token::Whitespace => {},
-          _ => {
-            self.cur = i;
-            break;
-          }
+        for i in self.cur..self.toks.len() {
+            match self.toks[i] {
+                Token::Newline => {}
+                Token::Whitespace => {}
+                _ => {
+                    self.cur = i;
+                    break;
+                }
+            }
         }
-      }
     }
     fn skip_whitespace(&mut self) {
         for i in self.cur..self.toks.len() {
             match self.toks[i] {
-                Token::Whitespace => {
-                },
+                Token::Whitespace => {}
                 _ => {
                     self.cur = i;
                     break;
@@ -290,7 +292,7 @@ impl Parser {
         match first {
             Token::Symbol(Symbol::LeftBracket) => {
                 self.cur += 1;
-            },
+            }
             _ => {
                 panic!("parsing error: expect [");
             }
@@ -299,7 +301,7 @@ impl Parser {
         self.cur += 1;
         let name = match second {
             Token::Identifier(name) => Some(name),
-            _ => None
+            _ => None,
         };
         let name = name.expect("parsing error: expect identifier");
         let third = self.toks[self.cur].clone();
@@ -310,14 +312,17 @@ impl Parser {
                 let fourth = self.toks[self.cur].clone();
                 self.cur += 1;
                 match fourth {
-                  Token::Newline => {
-                    let content = try!(self.parse_content());
-                    let block = AST::Block { name: name, content: content };
-                    Ok(block)
-                  },
-                  _ => panic!("parsing error: expect newline")
+                    Token::Newline => {
+                        let content = self.parse_content()?;
+                        let block = AST::Block {
+                            name: name,
+                            content: content,
+                        };
+                        Ok(block)
+                    }
+                    _ => panic!("parsing error: expect newline"),
                 }
-            },
+            }
             _ => {
                 panic!("parsing error: expect ]");
             }
@@ -326,71 +331,73 @@ impl Parser {
     fn parse_content(&mut self) -> Result<Vec<AST>, String> {
         let mut content: Vec<AST> = Vec::new();
         while self.cur < self.toks.len() {
-          let head = self.toks[self.cur].clone();
-          match head {
-            Token::Symbol(Symbol::LeftBracket) => {
-              break;
-            },
-            Token::Newline => {
-              self.cur += 1;
-              break;
-            }
-            Token::Identifier(_) | Token::Number(_) | Token::String(_) => {
-              let first = try!(self.parse_target());
-              self.skip_whitespace();
-              let second = self.toks[self.cur].clone();
-              self.cur += 1;
-              match second {
+            let head = self.toks[self.cur].clone();
+            match head {
+                Token::Symbol(Symbol::LeftBracket) => {
+                    break;
+                }
                 Token::Newline => {
-                  content.push(first);
-                },
-                Token::Symbol(Symbol::Colon) => {
-                  match &first {
-                    AST::Edge{from:_,to:_} => {
-                      self.skip_blank();
-                      let third = try!(self.parse_value());
-                      self.skip_whitespace();
-                      let fourth = self.toks[self.cur].clone();
-                      self.cur += 1;
-                      match fourth {
+                    self.cur += 1;
+                    break;
+                }
+                Token::Identifier(_) | Token::Number(_) | Token::String(_) => {
+                    let first = self.parse_target()?;
+                    self.skip_whitespace();
+                    let second = self.toks[self.cur].clone();
+                    self.cur += 1;
+                    match second {
                         Token::Newline => {
-                          let target = first.clone();
-                          let stmt = third.clone();
-                          content.push(AST::EdgeDef {target: Box::new(target), stmt: Box::new(stmt)});
+                            content.push(first);
+                        }
+                        Token::Symbol(Symbol::Colon) => match &first {
+                            AST::Edge { from: _, to: _ } => {
+                                self.skip_blank();
+                                let third = self.parse_value()?;
+                                self.skip_whitespace();
+                                let fourth = self.toks[self.cur].clone();
+                                self.cur += 1;
+                                match fourth {
+                                    Token::Newline => {
+                                        let target = first.clone();
+                                        let stmt = third.clone();
+                                        content.push(AST::EdgeDef {
+                                            target: Box::new(target),
+                                            stmt: Box::new(stmt),
+                                        });
+                                    }
+                                    _ => panic!("parsing error: expect newline"),
+                                }
+                            }
+                            _ => panic!("parsing error: edge : stmt ?"),
                         },
-                        _ => panic!("parsing error: expect newline")
-                      }
-                    },
-                    _ => panic!("parsing error: edge : stmt ?")
-                  }
-                },
-                Token::Symbol(Symbol::Equal) => {
-                  match &first {
-                    AST::Symbol(_) | AST::String(_) | AST::Number(_) => {
-                      self.skip_blank();
-                      let third = try!(self.parse_value());
-                      self.skip_whitespace();
-                      let fourth = self.toks[self.cur].clone();
-                      self.cur += 1;
-                      match fourth {
-                        Token::Newline => {
-                          let target = first.clone();
-                          let stmt = third.clone();
-                          content.push(AST::LeafDef {target: Box::new(target), stmt: Box::new(stmt)});
+                        Token::Symbol(Symbol::Equal) => match &first {
+                            AST::Symbol(_) | AST::String(_) | AST::Number(_) => {
+                                self.skip_blank();
+                                let third = self.parse_value()?;
+                                self.skip_whitespace();
+                                let fourth = self.toks[self.cur].clone();
+                                self.cur += 1;
+                                match fourth {
+                                    Token::Newline => {
+                                        let target = first.clone();
+                                        let stmt = third.clone();
+                                        content.push(AST::LeafDef {
+                                            target: Box::new(target),
+                                            stmt: Box::new(stmt),
+                                        });
+                                    }
+                                    _ => panic!("parsing error: expect newline"),
+                                }
+                            }
+                            _ => panic!("parsing error: leaf = stmt ?"),
                         },
-                        _ => panic!("parsing error: expect newline")
-                      }
-                    },
-                    _ => panic!("parsing error: leaf = stmt ?")
-                  }
-                },
-                _ => panic!("parsing error: expect : or newline")
+                        _ => panic!("parsing error: expect : or newline"),
+                    }
+                }
+                _ => panic!("parsing error: expect newline or identifier"),
             }
-          }
-          _ => panic!("parsing error: expect newline or identifier")
         }
-      }
-       Ok(content)
+        Ok(content)
     }
 
     fn parse_key(&mut self) -> Result<AST, String> {
@@ -400,12 +407,12 @@ impl Parser {
             Token::Identifier(name) => Ok(AST::Symbol(name.to_string())),
             Token::String(string) => Ok(AST::String(string.to_string())),
             Token::Number(number) => Ok(AST::Number(number)),
-            _ => panic!("parsing error: expect identifier or string or number")
+            _ => panic!("parsing error: expect identifier or string or number"),
         }
     }
 
     fn parse_target(&mut self) -> Result<AST, String> {
-        let left = try!(self.parse_key());
+        let left = self.parse_key()?;
         let cur = self.cur;
         self.skip_blank();
         let second = self.toks[self.cur].clone();
@@ -413,9 +420,12 @@ impl Parser {
         match second {
             Token::Arrow => {
                 self.skip_blank();
-                let right = try!(self.parse_key());
-                Ok(AST::Edge { from: Box::new(left), to: Box::new(right) })
-            },
+                let right = self.parse_key()?;
+                Ok(AST::Edge {
+                    from: Box::new(left),
+                    to: Box::new(right),
+                })
+            }
             _ => {
                 self.cur = cur;
                 Ok(left)
@@ -424,42 +434,45 @@ impl Parser {
     }
 
     fn parse_value(&mut self) -> Result<AST, String> {
-      let first = self.toks[self.cur].clone();
-      match first {
-        Token::Symbol(Symbol::LeftBrace) => self.parse_struct(),
-        Token::Symbol(Symbol::LeftParen) => self.parse_list(),
-        Token::String(string) => {
-          self.cur += 1;
-          Ok(AST::String(string))
-        },
-        Token::Number(number) => {
-          self.cur += 1;
-          Ok(AST::Number(number))
-        },
-        Token::Identifier(_) => self.parse_message(),
-        _ => panic!("parsing error: expect {, string, number, or identifier")
-      }
+        let first = self.toks[self.cur].clone();
+        match first {
+            Token::Symbol(Symbol::LeftBrace) => self.parse_struct(),
+            Token::Symbol(Symbol::LeftParen) => self.parse_list(),
+            Token::String(string) => {
+                self.cur += 1;
+                Ok(AST::String(string))
+            }
+            Token::Number(number) => {
+                self.cur += 1;
+                Ok(AST::Number(number))
+            }
+            Token::Identifier(_) => self.parse_message(),
+            _ => panic!("parsing error: expect {, string, number, or identifier"),
+        }
     }
 
     fn parse_pair(&mut self) -> Result<AST, String> {
-      let pair_left = try!(self.parse_key());
-      self.skip_blank();
-      let second = self.toks[self.cur].clone();
-      self.cur += 1;
-      match second {
-        Token::Symbol(Symbol::Colon) => {},
-        _ => panic!("parsing error: expect :")
-      }
-      self.skip_blank();
-      Ok(AST::LeafDef { target: Box::new(pair_left), stmt: Box::new(try!(self.parse_value()))})
+        let pair_left = self.parse_key()?;
+        self.skip_blank();
+        let second = self.toks[self.cur].clone();
+        self.cur += 1;
+        match second {
+            Token::Symbol(Symbol::Colon) => {}
+            _ => panic!("parsing error: expect :"),
+        }
+        self.skip_blank();
+        Ok(AST::LeafDef {
+            target: Box::new(pair_left),
+            stmt: Box::new(self.parse_value()?),
+        })
     }
 
     fn parse_list(&mut self) -> Result<AST, String> {
         let first = self.toks[self.cur].clone();
         self.cur += 1;
         match first {
-            Token::Symbol(Symbol::LeftParen) => {},
-            _ => panic!("parsing error: expect (")
+            Token::Symbol(Symbol::LeftParen) => {}
+            _ => panic!("parsing error: expect ("),
         }
         let mut content: Vec<AST> = Vec::new();
         self.skip_blank();
@@ -468,10 +481,10 @@ impl Parser {
             match second {
                 Token::Symbol(Symbol::RightParen) => {
                     return Ok(AST::List(content));
-                },
+                }
                 _ => {}
             }
-            let value = try!(self.parse_value());
+            let value = self.parse_value()?;
             content.push(value);
             self.skip_blank();
             let comma = self.toks[self.cur].clone();
@@ -479,7 +492,7 @@ impl Parser {
                 Token::Symbol(Symbol::Comma) => {
                     self.cur += 1;
                     self.skip_blank();
-                },
+                }
                 _ => {
                     break;
                 }
@@ -488,138 +501,131 @@ impl Parser {
         let third = self.toks[self.cur].clone();
         self.cur += 1;
         match third {
-            Token::Symbol(Symbol::RightParen) => {
-                Ok(AST::List(content))
-            },
-            _ => panic!("parsing error: expect )")
+            Token::Symbol(Symbol::RightParen) => Ok(AST::List(content)),
+            _ => panic!("parsing error: expect )"),
         }
     }
 
     fn parse_struct(&mut self) -> Result<AST, String> {
-      let first = self.toks[self.cur].clone();
-      self.cur += 1;
-      match first {
-        Token::Symbol(Symbol::LeftBrace) => {},
-        _ => panic!("parsing error: expect {")
-      }
-      let mut content: Vec<AST> = Vec::new();
-      self.skip_blank();
-      while self.cur < self.toks.len() {
-        let second = self.toks[self.cur].clone();
-        match second {
-          Token::Symbol(Symbol::RightBrace) => {
-            return Ok(AST::List(content));
-          },
-          _ => {}
+        let first = self.toks[self.cur].clone();
+        self.cur += 1;
+        match first {
+            Token::Symbol(Symbol::LeftBrace) => {}
+            _ => panic!("parsing error: expect {"),
         }
-        let pair = try!(self.parse_pair());
-        content.push(pair);
+        let mut content: Vec<AST> = Vec::new();
         self.skip_blank();
-        let comma = self.toks[self.cur].clone();
-        match comma {
-          Token::Symbol(Symbol::Comma) => {
-            self.cur += 1;
+        while self.cur < self.toks.len() {
+            let second = self.toks[self.cur].clone();
+            match second {
+                Token::Symbol(Symbol::RightBrace) => {
+                    return Ok(AST::List(content));
+                }
+                _ => {}
+            }
+            let pair = self.parse_pair()?;
+            content.push(pair);
             self.skip_blank();
-          },
-          _ => {
-            break;
-          }
+            let comma = self.toks[self.cur].clone();
+            match comma {
+                Token::Symbol(Symbol::Comma) => {
+                    self.cur += 1;
+                    self.skip_blank();
+                }
+                _ => {
+                    break;
+                }
+            }
         }
-      }
-      let third = self.toks[self.cur].clone();
-      self.cur += 1;
-      match third {
-        Token::Symbol(Symbol::RightBrace) => {
-          Ok(AST::Struct(content) )
-        },
-        _ => panic!("parsing error: expect }")
-      }
+        let third = self.toks[self.cur].clone();
+        self.cur += 1;
+        match third {
+            Token::Symbol(Symbol::RightBrace) => Ok(AST::Struct(content)),
+            _ => panic!("parsing error: expect }"),
+        }
     }
 
     fn parse_message(&mut self) -> Result<AST, String> {
-      let first = self.toks[self.cur].clone();
-      self.cur += 1;
-      let message_name: String;
-      match first {
-        Token::Identifier(name) => {
-          message_name = name;
-        },
-        _ => panic!("parsing error: expect identifier")
-      }
-      let second = self.toks[self.cur].clone();
-      match second {
-        Token::Symbol(Symbol::LeftParen) => Ok(AST::Message {name: message_name, args: try!(self.parse_args())}),
-        _ => {
-          Ok(AST::Symbol(message_name))
+        let first = self.toks[self.cur].clone();
+        self.cur += 1;
+        let message_name: String;
+        match first {
+            Token::Identifier(name) => {
+                message_name = name;
+            }
+            _ => panic!("parsing error: expect identifier"),
         }
-      }
+        let second = self.toks[self.cur].clone();
+        match second {
+            Token::Symbol(Symbol::LeftParen) => Ok(AST::Message {
+                name: message_name,
+                args: self.parse_args()?,
+            }),
+            _ => Ok(AST::Symbol(message_name)),
+        }
     }
 
     fn parse_args(&mut self) -> Result<Vec<AST>, String> {
-      let first = self.toks[self.cur].clone();
-      self.cur += 1;
-      match first {
-        Token::Symbol(Symbol::LeftParen) => {},
-        _ => panic!("parsing error: expect (")
-      }
-      let mut content: Vec<AST> = Vec::new();
-      self.skip_blank();
-      while self.cur < self.toks.len() {
-        let second = self.toks[self.cur].clone();
-        match second {
-          Token::Symbol(Symbol::RightParen) => {
-            break;
-          },
-          _ => {}
+        let first = self.toks[self.cur].clone();
+        self.cur += 1;
+        match first {
+            Token::Symbol(Symbol::LeftParen) => {}
+            _ => panic!("parsing error: expect ("),
         }
-        let value = try!(self.parse_value());
-        content.push(value);
+        let mut content: Vec<AST> = Vec::new();
         self.skip_blank();
-        let comma = self.toks[self.cur].clone();
-        match comma {
-          Token::Symbol(Symbol::Comma) => {
-            self.cur += 1;
+        while self.cur < self.toks.len() {
+            let second = self.toks[self.cur].clone();
+            match second {
+                Token::Symbol(Symbol::RightParen) => {
+                    break;
+                }
+                _ => {}
+            }
+            let value = self.parse_value()?;
+            content.push(value);
             self.skip_blank();
-          },
-          _ => {
-            break;
-          }
+            let comma = self.toks[self.cur].clone();
+            match comma {
+                Token::Symbol(Symbol::Comma) => {
+                    self.cur += 1;
+                    self.skip_blank();
+                }
+                _ => {
+                    break;
+                }
+            }
         }
-      }
-      let third = self.toks[self.cur].clone();
-      self.cur += 1;
-      match third {
-        Token::Symbol(Symbol::RightParen) => {
-          Ok(content)
-        },
-        _ => panic!("parsing error: expect )")
-      }
+        let third = self.toks[self.cur].clone();
+        self.cur += 1;
+        match third {
+            Token::Symbol(Symbol::RightParen) => Ok(content),
+            _ => panic!("parsing error: expect )"),
+        }
     }
 
     fn get_ast(&mut self) -> Result<Vec<AST>, String> {
-      let mut blocks: Vec<AST> = Vec::new();
-      while self.cur < self.toks.len() {
-        let block = try!(self.parse_block());
-        blocks.push(block);
-      }
-      Ok(blocks)
+        let mut blocks: Vec<AST> = Vec::new();
+        while self.cur < self.toks.len() {
+            let block = self.parse_block()?;
+            blocks.push(block);
+        }
+        Ok(blocks)
     }
 
     pub fn parse(&mut self) -> Result<HashMap<String, GValue>, String> {
-        let root_ast = try!(self.get_ast());
+        let root_ast = self.get_ast()?;
         let mut root: HashMap<String, GValue> = HashMap::new();
         let blocks: Vec<GValue> = root_ast.into_iter().map(GValue::from).collect();
         for block in blocks {
             match block {
-                GValue::Pair(key, value) => {
-                    match *key {
-                        GValue::String(key_string) => {
-                            root.entry(key_string).or_insert(*value);
-                        },
-                        _ => panic!("convert error: key should be String")
+                GValue::Pair(key, value) => match *key {
+                    GValue::String(key_string) => {
+                        root.entry(key_string).or_insert(*value);
                     }
+                    _ => panic!("convert error: key should be String"),
                 },
-                _ => panic!("convert error: invalid block syntax")
+                _ => panic!("convert error: invalid block syntax"),
             }
         }
         Ok(root)
@@ -634,7 +640,7 @@ pub enum GValue {
     Message(String, Vec<GValue>),
     Edge(Box<GValue>, Box<GValue>),
     Vec(Vec<GValue>),
-    Pair(Box<GValue>, Box<GValue>)
+    Pair(Box<GValue>, Box<GValue>),
 }
 
 impl From<AST> for GValue {
@@ -643,16 +649,26 @@ impl From<AST> for GValue {
             AST::String(string) => GValue::String(string.to_string()),
             AST::Number(number) => GValue::Number(number),
             AST::Symbol(name) => GValue::Symbol(name.to_string()),
-            AST::LeafDef{target,stmt} => GValue::Pair(Box::new(GValue::from(*target)), Box::new(GValue::from(*stmt))),
-            AST::Edge{from,to} => GValue::Edge(Box::new(GValue::from(*from)), Box::new(GValue::from(*to))),
-            AST::EdgeDef{target,stmt} => GValue::Pair(Box::new(GValue::from(*target)), Box::new(GValue::from(*stmt))),
-            AST::Message{name,args} => GValue::Message(name, args.into_iter().map(GValue::from).collect()),
+            AST::LeafDef { target, stmt } => GValue::Pair(
+                Box::new(GValue::from(*target)),
+                Box::new(GValue::from(*stmt)),
+            ),
+            AST::Edge { from, to } => {
+                GValue::Edge(Box::new(GValue::from(*from)), Box::new(GValue::from(*to)))
+            }
+            AST::EdgeDef { target, stmt } => GValue::Pair(
+                Box::new(GValue::from(*target)),
+                Box::new(GValue::from(*stmt)),
+            ),
+            AST::Message { name, args } => {
+                GValue::Message(name, args.into_iter().map(GValue::from).collect())
+            }
             AST::Struct(content) => GValue::Vec(content.into_iter().map(GValue::from).collect()),
             AST::List(content) => GValue::Vec(content.into_iter().map(GValue::from).collect()),
-            AST::Block{name, content} =>
-                GValue::Pair(Box::new(GValue::String(name.to_string())),
-                Box::new(GValue::Vec(content.into_iter().map(GValue::from).collect())))
+            AST::Block { name, content } => GValue::Pair(
+                Box::new(GValue::String(name.to_string())),
+                Box::new(GValue::Vec(content.into_iter().map(GValue::from).collect())),
+            ),
         }
     }
 }
-
